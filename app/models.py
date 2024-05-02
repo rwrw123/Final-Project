@@ -1,7 +1,8 @@
 from flask_pymongo import PyMongo
+from app import mongo
 
-mongo = None
-
-def init_db(app):
-    global mongo
-    mongo = PyMongo(app)
+def get_user_by_username(username):
+    user = mongo.db.users.find_one({"username": username})
+    if user:
+        return user
+    return None
