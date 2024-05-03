@@ -1,0 +1,16 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h2>Submit Health Record</h2>
+<form method="POST" action="/submit_record">
+    <input type="hidden" name="user_id" value="{{ user_id }}">
+    <label for="date">Date:</label>
+    <input type="date" id="date" name="date" required>
+    <label for="temperature">Temperature:</label>
+    <input type="number" step="0.1" id="temperature" name="temperature" required>
+    <label for="blood_pressure">Blood Pressure:</label>
+    <input type="text" id="blood_pressure" name="blood_pressure" required>
+    <label for="heart_rate">Heart Rate:</label>
+    <input type="number" id="heart_rate" name="heart_rate" required>
+    <button type="submit">Submit Record</button>
+</form>
+{% endblock %}

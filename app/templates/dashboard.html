@@ -1,0 +1,14 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h2>Dashboard</h2>
+<p>Welcome, {{ username }}!</p>
+<a href="/submit_record">Submit New Health Record</a>
+<div>
+    <h3>Your Health Records</h3>
+    <ul>
+        {% for record in records %}
+        <li>{{ record.date }} - Temp: {{ record.temperature }}, BP: {{ record.blood_pressure }}, HR: {{ record.heart_rate }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

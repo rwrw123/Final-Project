@@ -1,75 +1,44 @@
-from flask import Flask, request, jsonify, abort
-from .services import (register_user, add_patient_measurement, delete_user, update_user, get_patient_details,
-                       update_patient, delete_patient)
-from .models import get_all_patients
-from .auth import required_token, role_required
+from flask import Blueprint, request, jsonify, render_template, session, redirect, url_for
+from .models import HealthRecord, User, db
+from datetime import datetime
 
-def configure_routes(app):
+main = Blueprint('main', __name__)
 
-    @app.route('/')
-    def index():
-        return "Health Monitoring API is running!"
+@main.route('/')
+def home():
+    return render_template('layout.html')
 
-    @app.route('/users/register', methods=['POST'])
-    @required_token
-    @role_required(['Admin'])
-    def handle_register_user():
-        data = request.json
-        result, status_code = register_user(data)
-        return jsonify(result), status_code
+@main.route('/dashboard')
+def dashboard():
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('auth.login'))
+    user = User.query.get(user_id)
+    records = HealthRecord.query.filter_by(user_id=user_id).all()
+    return render_template('dashboard.html', username=user.username, records=records)
 
-    @app.route('/users/<user_id>/delete', methods=['DELETE'])
-    @required_token
-    @role_required(['Admin'])
-    def handle_delete_user(user_id):
-        result, status_code = delete_user(user_id)
-        return jsonify(result), status_code
+@main.route('/submit_record', methods=['GET', 'POST'])
+def submit_record():
+    if request.method == 'POST':
+        user_id = session.get('user_id')
+        if not user_id:
+            return redirect(url_for('auth.login'))
+        date = datetime.strptime(request.form['date'], '%Y-%m-%d')
+        temperature = request.form['temperature']
+        blood_pressure = request.form['blood_pressure']
+        heart_rate = request.form['heart_rate']
+        record = HealthRecord(user_id=user_id, date=date, temperature=temperature,
+                              blood_pressure=blood_pressure, heart_rate=heart_rate)
+        db.session.add(record)
+        db.session.commit()
+        return redirect(url_for('main.dashboard'))
+    return render_template('submit_record.html')
 
-    @app.route('/users/<user_id>', methods=['PUT'])
-    @required_token
-    @role_required(['Admin'])
-    def handle_update_user(user_id):
-        data = request.json
-        result, status_code = update_user(user_id, data)
-        return jsonify(result), status_code
-
-    @app.route('/patients', methods=['GET'])
-    @required_token
-    def handle_get_all_patients():
-        patients = get_all_patients()
-        return jsonify(patients), 200
-
-    @app.route('/patients/<int:patient_id>', methods=['GET'])
-    @required_token
-    def handle_get_patient_details(patient_id):
-        patient = get_patient_details(patient_id)
-        if patient:
-            return jsonify(patient), 200
-        return jsonify({"error": "Patient not found"}), 404
-
-    @app.route('/patients/<int:patient_id>', methods=['PUT'])
-    @required_token
-    def handle_update_patient(patient_id):
-        data = request.json
-        result, status_code = update_patient(patient_id, data)
-        return jsonify(result), status_code
-
-    @app.route('/patients/<int:patient_id>', methods=['DELETE'])
-    @required_token
-    def handle_delete_patient(patient_id):
-        result, status_code = delete_patient(patient_id)
-        return jsonify(result), status_code
-
-    @app.route('/patients/<int:patient_id>/measurements/add', methods=['POST'])
-    @required_token
-    def handle_add_patient_measurement(patient_id):
-        measurement = request.json
-        result, status_code = add_patient_measurement(patient_id, measurement)
-        return jsonify(result), status_code
-
-if __name__ == '__main__':
-    app = Flask(__name__)
-    configure_routes(app)
-    app.run(debug=True)
-
-
+@main.route('/get_records', methods=['GET'])
+def get_records():
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('auth.login'))
+    records = HealthRecord.query.filter_by(user_id=user_id).all()
+    return jsonify([{'date': r.date.strftime('%Y-%m-%d'), 'temperature': r.temperature, 'blood_pressure': r.blood_pressure,
+                     'heart_rate': r.heart_rate} for r in records]), 200
