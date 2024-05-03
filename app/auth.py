@@ -1,61 +1,71 @@
 import jwt
 import datetime
 from flask import request, jsonify
-from functools import wraps
-from .services import get_user_details  # Ensure this service exists and is implemented correctly
+from config import Config
+from database import mongo
 
-SECRET_KEY = "secret_key_here"
+def generate_refresh_token(user_id):
+    payload = {
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7),  # Refresh token is long-lived
+        'iat': datetime.datetime.utcnow(),
+        'sub': user_id
+    }
+    token = jwt.encode(payload, Config.SECRET_KEY, algorithm='HS256').decode('utf-8')
+    save_refresh_token(user_id, token)
+    return token
 
-def generate_token(user_id, roles):
-    """Generates a JWT token for authenticated users."""
-    try:
-        payload = {
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1),  # Token expires in one day
-            'iat': datetime.datetime.utcnow(),
-            'sub': user_id,
-            'roles': roles
-        }
-        return jwt.encode(payload, SECRET_KEY, algorithm='HS256').decode('utf-8')
-    except Exception as e:
-        return str(e)
+def save_refresh_token(user_id, token):
+    mongo.db.refresh_tokens.update_one(
+        {'user_id': user_id},
+        {'$set': {'token': token, 'created_at': datetime.datetime.utcnow()}},
+        upsert=True
+    )
 
-def decode_token(token):
-    """Decodes the JWT token."""
-    try:
-        return jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
-    except jwt.ExpiredSignatureError:
-        return 'Token expired, please log in again.'
-    except jwt.InvalidTokenError:
-        return 'Invalid token, please log in again.'
+
+@app.route('/token/refresh', methods=['POST'])
+def refresh_access_token():
+    refresh_token = request.json.get('refresh_token')
+    if not refresh_token:
+        return jsonify({'error': 'Refresh token is required'}), 400
+
+    payload = decode_token(refresh_token)
+    if 'error' in payload:
+        return jsonify({'error': payload['error']}), 401
+
+    # Check if the token is stored in the database
+    stored_token = mongo.db.refresh_tokens.find_one({'token': refresh_token})
+    if not stored_token or stored_token['token'] != refresh_token:
+        return jsonify({'error': 'Invalid refresh token'}), 401
+
+    # Generate new access token
+    user_id = payload['sub']
+    new_access_token = generate_access_token(user_id, get_user_roles(user_id))
+    return jsonify({'access_token': new_access_token})
+
+
+def revoke_refresh_token(user_id):
+    mongo.db.refresh_tokens.delete_one({'user_id': user_id})
+
+def validate_refresh_token(token):
+    payload = decode_token(token)
+    if 'error' in payload:
+        return False, payload['error']
+    # Ensure the token exists in the database and is not revoked
+    stored_token = mongo.db.refresh_tokens.find_one({'token': token})
+    if not stored_token or stored_token['token'] != token:
+        return False, 'Token revoked or does not exist'
+    return True, None
 
 def token_required(f):
+    from functools import wraps
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated(*args, **kwargs):
         token = request.headers.get('Authorization')
         if not token:
-            return jsonify({'message': 'Token is missing!'}), 403
-        try:
-            data = decode_token(token)
-            current_user = get_user_details(data['sub'])  # Fetch the user details using the user ID in the token
-        except Exception as e:
-            return jsonify({'message': str(e)}), 401
-        return f(current_user, *args, **kwargs)
-    return decorated_function
-
-def role_required(allowed_roles):
-    def wrapper(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            token = request.headers.get('Authorization')
-            if not token:
-                return jsonify({'message': 'Token is missing!'}), 403
-            try:
-                data = decode_token(token)
-                if not any(role in data['roles'] for role in allowed_roles):
-                    return jsonify({'message': 'Permission denied'}), 403
-            except Exception as e:
-                return jsonify({'message': str(e)}), 401
-            return f(*args, **kwargs)
-        return decorated_function
-    return wrapper
+            return jsonify({'message': 'Token is missing'}), 403
+        payload = decode_token(token)
+        if 'error' in payload:
+            return jsonify({'message': payload['error']}), 401
+        return f(*args, **kwargs)
+    return decorated
 
