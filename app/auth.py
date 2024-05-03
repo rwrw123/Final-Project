@@ -1,35 +1,61 @@
-from flask import jsonify, request
-from flask_restx import Namespace, Resource, fields
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-from werkzeug.security import check_password_hash
-from pymongo import MongoClient
+import jwt
+import datetime
+from flask import request, jsonify
+from functools import wraps
+from .services import get_user_details  # Ensure this service exists and is implemented correctly
 
-# Setup MongoDB connection
-client = MongoClient("mongodb://localhost:27017/")
-db = client['health_db']
+SECRET_KEY = "secret_key_here"
 
-ns = Namespace('auth', description='Authentication services')
+def generate_token(user_id, roles):
+    """Generates a JWT token for authenticated users."""
+    try:
+        payload = {
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1),  # Token expires in one day
+            'iat': datetime.datetime.utcnow(),
+            'sub': user_id,
+            'roles': roles
+        }
+        return jwt.encode(payload, SECRET_KEY, algorithm='HS256').decode('utf-8')
+    except Exception as e:
+        return str(e)
 
-# Model for user login
-user_login_model = ns.model('Login', {
-    'email': fields.String(required=True, description='The user email'),
-    'password': fields.String(required=True, description='The user password')
-})
+def decode_token(token):
+    """Decodes the JWT token."""
+    try:
+        return jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+    except jwt.ExpiredSignatureError:
+        return 'Token expired, please log in again.'
+    except jwt.InvalidTokenError:
+        return 'Invalid token, please log in again.'
 
-@ns.route('/login')
-class UserLogin(Resource):
-    @ns.expect(user_login_model)
-    def post(self):
-        """Authenticate user and return a JWT"""
-        data = request.get_json()
-        user = db.users.find_one({'email': data['email']})
-        if user and check_password_hash(user['password'], data['password']):
-            access_token = create_access_token(identity=str(user['_id']))
-            return jsonify(access_token=access_token)
-        else:
-            return ns.abort(401, 'Invalid credentials')
+def token_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if not token:
+            return jsonify({'message': 'Token is missing!'}), 403
+        try:
+            data = decode_token(token)
+            current_user = get_user_details(data['sub'])  # Fetch the user details using the user ID in the token
+        except Exception as e:
+            return jsonify({'message': str(e)}), 401
+        return f(current_user, *args, **kwargs)
+    return decorated_function
 
-def setup_jwt(app):
-    app.config['JWT_SECRET_KEY'] = 'your-secret-key'  # Change to your real secret key
-    jwt = JWTManager(app)
-    return jwt
+def role_required(allowed_roles):
+    def wrapper(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            token = request.headers.get('Authorization')
+            if not token:
+                return jsonify({'message': 'Token is missing!'}), 403
+            try:
+                data = decode_token(token)
+                if not any(role in data['roles'] for role in allowed_roles):
+                    return jsonify({'message': 'Permission denied'}), 403
+            except Exception as e:
+                return jsonify({'message': str(e)}), 401
+            return f(*args, **kwargs)
+        return decorated_function
+    return wrapper
+

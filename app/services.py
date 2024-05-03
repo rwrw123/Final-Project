@@ -25,3 +25,13 @@ def add_patient_measurement(patient_id, measurement):
         "timestamp": datetime.now(timezone.utc)
     })
     return {"measurementId": str(result.inserted_id), "status": "success"}, 201
+
+def delete_user(user_id):
+    try:
+        result = mongo.db.users.delete_one({"_id": ObjectId(user_id)})
+        if result.deleted_count:
+            return {"status": "User deleted"}, 200
+        else:
+            return {"error": "User not found"}, 404
+    except Exception as e:
+        return {"error": str(e)}, 500

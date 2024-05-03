@@ -6,3 +6,6 @@ def get_user_by_username(username):
     if user:
         return user
     return None
+
+def get_all_patients():
+    return list(mongo.db.patients.find({}))
