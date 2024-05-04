@@ -15,3 +15,6 @@ class HealthRecord(db.Model):
     heart_rate = db.Column(db.Integer, nullable=False)
 
     user = db.relationship('User', backref=db.backref('records', lazy=True))
+
+
+
