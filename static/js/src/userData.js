@@ -6,4 +6,4 @@ async function fetchUserData(userId) {
     return response.json();
 }
 
-module.exports = fetchUserData;
+export default fetchUserData;

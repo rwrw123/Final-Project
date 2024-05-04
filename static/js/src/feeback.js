@@ -5,4 +5,4 @@ function feedback(input) {
     return { message: 'Looks good!', isValid: true };
 }
 
-module.exports = feedback;
+export default feedback;
