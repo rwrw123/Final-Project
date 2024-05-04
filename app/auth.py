@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, redirect, url_for, session
+from flask import Blueprint, request, render_template, redirect, url_for, session,flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.orm import Session
 from . import db
@@ -16,6 +16,7 @@ def register():
         session_obj.add(new_user)
         session_obj.commit()
         session_obj.close()
+        flash('Registration successful. Please log in.')
         return redirect(url_for('auth.login'))
     return render_template('register.html')
 
@@ -31,12 +32,14 @@ def login():
             session_obj.close()
             return redirect(url_for('main.dashboard'))
         session_obj.close()
-        return 'Invalid credentials', 401
+        flash('Invalid credentials', 'Danger')
+        return redirect(url_for('main.dashboard'))
     return render_template('login.html')
 
 @auth.route('/logout')
 def logout():
     session.pop('user_id', None)
+    flash('Successfully logged out.', 'info')
     return redirect(url_for('main.home'))
 
 
