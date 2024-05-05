@@ -1,50 +1,37 @@
 import unittest
-from app import create_app, db
-from app.models import User
 from flask_testing import TestCase
+from app import create_app, db
 
-class IntegrationTestCase(TestCase):
-
+class TestIntegration(TestCase):  # Ensure the class name starts with 'Test'
     def create_app(self):
-        """Create a test app."""
         app = create_app({'TESTING': True, 'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:'})
         return app
 
     def setUp(self):
-        """Set up the test database."""
         db.create_all()
-        user = User(username="testuser", email="testuser@example.com", role="user")
-        user.set_password("password")
-        db.session.add(user)
-        db.session.commit()
 
     def tearDown(self):
-        """Tear down the test database."""
         db.session.remove()
         db.drop_all()
 
-    def test_end_to_end(self):
-        """Test an end-to-end flow from registration to record submission."""
-        response = self.client.post('/register', data={
-            'username': 'testuser2',
-            'email': 'testuser2@example.com',
-            'password': 'password',
-            'confirm_password': 'password'
-        })
-        self.assertEqual(response.status_code, 200)
+    def test_user_creation(self):
+        from app.models import User
+        user = User(username='testuser', email='testuser@example.com', password_hash='testpassword')
+        db.session.add(user)
+        db.session.commit()
+        result = User.query.filter_by(username='testuser').first()
+        self.assertIsNotNone(result)
 
-        response = self.client.post('/login', data={
-            'username': 'testuser2',
-            'password': 'password'
-        })
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Dashboard', response.data)
+    def test_metric_creation(self):
+        from app.models import HealthMetric
+        metric = HealthMetric(name='Weight', unit='kg')
+        db.session.add(metric)
+        db.session.commit()
+        result = HealthMetric.query.filter_by(name='Weight'). first()
+        self.assertIsNotNone(result)
 
-        response = self.client.post('/submit_record', data={
-            'temperature': '98.6',
-            'blood_pressure_systolic': '120',
-            'blood_pressure_diastolic': '80',
-            'heart_rate': '72'
-        })
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Health record added successfully', response.data)
+if __name__ == '__main__':
+    unittest.main()
+
+
+

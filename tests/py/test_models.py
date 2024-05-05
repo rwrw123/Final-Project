@@ -1,91 +1,86 @@
 import unittest
+import datetime
+from flask_testing import TestCase
 from app import create_app, db
 from app.models import User, HealthMetric, HealthRecord, HealthRecordValue
-from datetime import datetime
 
+class TestUserModel(TestCase):  # Ensure the class name starts with 'Test'
+    def create_app(self):
+        app = create_app({'TESTING': True, 'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:'})
+        return app
 
-class TestUserModel(unittest.TestCase):
     def setUp(self):
-        self.app = create_app()
-        self.app_context = self.app.app_context()
-        self.app_context.push()
         db.create_all()
-        user = User(username="testuser", email="testuser@example.com", role="user")
-        user.set_password("password")
-        db.session.add(user)
-        db.session.commit()
 
     def tearDown(self):
         db.session.remove()
         db.drop_all()
-        self.app_context.pop()
 
     def test_create_health_record(self):
-        user = User.query.first()
-        record = HealthRecord(user_id=user.id, date=datetime.now())
+        user = User(username='testuser', email='testuser@example.com', password_hash='testpassword')
+        db.session.add(user)
+        db.session.commit()
+        record = HealthRecord(user=user, timestamp=datetime.datetime.now())
         db.session.add(record)
         db.session.commit()
-        self.assertIsNotNone(record.id)
+        result = HealthRecord.query.filter_by(user=user).first()
+        self.assertIsNotNone(result)
 
     def test_set_password(self):
-        user = User.query.first()
-        user.set_password("newpassword")
-        db.session.commit()
-        self.assertTrue(user.check_password("newpassword"))
+        user = User(username='testuser', email='testuser@example.com')
+        user.set_password('password')
+        self.assertTrue(user.check_password('password'))
 
+class TestHealthMetricModel(TestCase):  # Ensure the class name starts with 'Test'
+    def create_app(self):
+        app = create_app({'TESTING': True, 'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:'})
+        return app
 
-class TestHealthMetricModel(unittest.TestCase):
     def setUp(self):
-        self.app = create_app()
-        self.app_context = self.app.app_context()
-        self.app_context.push()
         db.create_all()
-        metric = HealthMetric(name="Weight", unit="kg")
-        db.session.add(metric)
-        db.session.commit()
 
     def tearDown(self):
         db.session.remove()
         db.drop_all()
-        self.app_context.pop()
 
     def test_create_health_metric(self):
-        metric = HealthMetric(name="Height", unit="cm")
+        metric = HealthMetric(name='Weight', unit='kg')
         db.session.add(metric)
         db.session.commit()
-        self.assertIsNotNone(metric.id)
+        result = HealthMetric.query.filter_by(name='Weight').first()
+        self.assertIsNotNone(result)
 
+class TestHealthRecordValueModel(TestCase):  # Ensure the class name starts with 'Test'
+    def create_app(self):
+        app = create_app({'TESTING': True, 'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:'})
+        return app
 
-class TestHealthRecordValueModel(unittest.TestCase):
     def setUp(self):
-        self.app = create_app()
-        self.app_context = self.app.app_context()
-        self.app_context.push()
         db.create_all()
-        user = User(username="testuser", email="testuser@example.com", role="user")
-        user.set_password("password")
-        db.session.add(user)
-        metric = HealthMetric(name="Weight", unit="kg")
-        db.session.add(metric)
-        record = HealthRecord(user=user, date=datetime.now())
-        db.session.add(record)
-        db.session.commit()
-        value = HealthRecordValue(record_id=record.id, metric_id=metric.id, value=70)
-        db.session.add(value)
-        db.session.commit()
 
     def tearDown(self):
         db.session.remove()
         db.drop_all()
-        self.app_context.pop()
 
     def test_create_health_record_value(self):
-        record_value = HealthRecordValue.query.first()
-        self.assertIsNotNone(record_value.id)
+        metric = HealthMetric(name='Weight', unit='kg')
+        db.session.add(metric)
+        user = User(username='testuser', email='testuser@example.com', password_hash='testpassword')
+        db.session.add(user)
+        record = HealthRecord(user=user, timestamp=datetime.datetime.now())
+        db.session.add(record)
+        db.session.commit()
+        value = HealthRecordValue(record=record, metric=metric, value=70)
+        db.session.add(value)
+        db.session.commit()
+        result = HealthRecordValue.query.filter_by(value=70).first()
+        self.assertIsNotNone(result)
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
+
+
+
 
 
 
