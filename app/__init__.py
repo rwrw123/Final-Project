@@ -1,29 +1,27 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager
 
+# Initialize extensions
 db = SQLAlchemy()
+login_manager = LoginManager()
 
-def create_app(config=None):
+def create_app():
     app = Flask(__name__)
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///health.db'
+    app.config['SECRET_KEY'] = 'secretkey'
 
-    # Default configuration with a secret key for session management
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://health_care:EC530_final@localhost/health_care'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = 'v9C5OIo8V8Bf1PViyC3Dtw' 
-
-    # Update configuration if specific config is provided
-    if config:
-        app.config.update(config)
-
+    # Initialize extensions with the app
     db.init_app(app)
-    
+    login_manager.init_app(app)
+
     with app.app_context():
+        # Import models
+        from . import models
+        # Create all tables
         db.create_all()
 
-    from .auth import auth as auth_blueprint
-    app.register_blueprint(auth_blueprint)
-
-    from .routes import main as main_blueprint
-    app.register_blueprint(main_blueprint)
-
     return app
+
+
+

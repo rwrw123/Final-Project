@@ -1,7 +1,7 @@
-from flask import Blueprint, render_template, request, session, redirect, url_for, flash
-from sqlalchemy.orm import Session
-from . import db
-from .models import HealthRecord, User
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash
+from flask_login import login_required, current_user
+from app import db
+from app.models import User, HealthRecord, HealthRecordValue, HealthMetric
 
 main = Blueprint('main', __name__)
 
@@ -10,51 +10,32 @@ def home():
     return render_template('home.html')
 
 @main.route('/dashboard')
+@login_required
 def dashboard():
-    user_id = session.get('user_id')
-    if not user_id:
-        flash("Please log in to view your dashboard.", "warning")
-        return redirect(url_for('auth.login'))
-
-    session_obj = Session(bind=db.engine)
-    user = session_obj.get(User, user_id)
-    if not user:
-        flash("User not found.", "danger")
-        return redirect(url_for('auth.login'))
-
-    records = session_obj.query(HealthRecord).filter_by(user_id=user_id).all()
-    session_obj.close()
-
-    return render_template('dashboard.html', username=user.username, records=records)
+    return render_template('dashboard.html', user=current_user)
 
 @main.route('/submit_record', methods=['GET', 'POST'])
+@login_required
 def submit_record():
-    if 'user_id' not in session:
-        flash("Please log in to submit a health record.", "warning")
-        return redirect(url_for('auth.login'))
-
-    session_obj = Session(bind=db.engine)
-    user_id = session['user_id']
-    if not session_obj.get(User, user_id):
-        flash("User not found.", "danger")
-        return redirect(url_for('auth.login'))
-
     if request.method == 'POST':
-        new_record = HealthRecord(
-            user_id=user_id,
-            date=request.form['date'],
-            temperature=request.form['temperature'],
-            blood_pressure=request.form['blood_pressure'],
-            heart_rate=request.form['heart_rate']
-        )
-        session_obj.add(new_record)
-        session_obj.commit()
-        session_obj.close()
-        flash("Health record added successfully.", "success")
+        temperature = float(request.form['temperature'])
+        blood_pressure_systolic = int(request.form['blood_pressure_systolic'])
+        blood_pressure_diastolic = int(request.form['blood_pressure_diastolic'])
+        heart_rate = int(request.form['heart_rate'])
+
+        record = HealthRecord(user_id=current_user.id, temperature=temperature,
+                              blood_pressure_systolic=blood_pressure_systolic,
+                              blood_pressure_diastolic=blood_pressure_diastolic,
+                              heart_rate=heart_rate)
+        db.session.add(record)
+        db.session.commit()
+        flash('Health record added successfully', 'success')
         return redirect(url_for('main.dashboard'))
+
     return render_template('submit_record.html')
 
-
-
-
-
+@main.route('/view_records')
+@login_required
+def view_records():
+    records = HealthRecord.query.filter_by(user_id=current_user.id).all()
+    return render_template('view_records.html', records=records)

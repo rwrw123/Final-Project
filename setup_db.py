@@ -1,30 +1,38 @@
-# setup_db.py
 from app import create_app, db
-from app.models import User, HealthRecord, HealthMetric, HealthRecordValue
-from datetime import date
+from app.models import User, HealthMetric, HealthRecord, HealthRecordValue
 
+# Create an app context
 app = create_app()
-
 with app.app_context():
-    # Create all tables
+    # Recreate the tables
     db.create_all()
 
-    # Check if there are any users in the database
-    if not User.query.first():  
-        user1 = User(username='user1', email='user1@example.com', role='user')
-        user1.set_password('password1')
-        user2 = User(username='admin', email='admin@example.com', role='admin')
-        user2.set_password('admin')
-
-        temp_metric = HealthMetric(name='Temperature', unit='°C')
-        bp_metric = HealthMetric(name='Blood Pressure Systolic', unit='mmHg')
-        hr_metric = HealthMetric(name='Heart Rate', unit='bpm')
-        db.session.add_all([temp_metric, bp_metric, hr_metric])
-
-        record1 = HealthRecord(user=user1, temperature=98.6, blood_pressure_systolic=120, blood_pressure_diastolic=80, heart_rate=72)
-        record2 = HealthRecord(user=user2, temperature=99.1, blood_pressure_systolic=110, blood_pressure_diastolic=70, heart_rate=80)
-
-        db.session.add_all([user1, user2, record1, record2])
+    # Add a test user if none exists
+    if not User.query.first():
+        user = User(username="testuser", email="testuser@example.com", role="user")
+        user.set_password("password")
+        db.session.add(user)
         db.session.commit()
 
-    print("Database setup complete with initial data.")
+        # Add a test health metric
+        metric = HealthMetric(name="Weight", unit="kg")
+        db.session.add(metric)
+        db.session.commit()
+
+        # Add a test health record for the user and metric
+        record = HealthRecord(user_id=user.id, health_metric_id=metric.id, value=70.5)
+        db.session.add(record)
+        db.session.commit()
+
+        # Add a test health record value
+        record_value = HealthRecordValue(health_record_id=record.id, value=70.5)
+        db.session.add(record_value)
+        db.session.commit()
+
+
+
+
+
+
+
+
