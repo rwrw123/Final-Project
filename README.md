@@ -19,14 +19,14 @@
      - git clone https://github.com/rwrw123/Final-Project
 #### 2. Navigate to the project directory
 #### 3. Create a virtual environment
-   - python -m venv venv
+     - python -m venv venv
 #### 4. Activate virtual environment
    - On Windows
-       - venv\Scripts\activate
+         - venv\Scripts\activate
    - On MacOS/Unix
-       - source venv/bin/activate
+         - source venv/bin/activate
 5. Install dependencies
-   - pip install -r requirements.txt
+     - pip install -r requirements.txt
 6. Set up the database
-   - python setup_db.py
+     - python setup_db.py
    
