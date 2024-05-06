@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 
-main = Blueprint('main', __name__, template_folder='template', static_folder='static')
-auth = Blueprint('auth', __name__, template_folder='template', static_folder='static')
+main = Blueprint('main', __name__, template_folder='template')
+auth = Blueprint('auth', __name__, template_folder='template')
 
 users = {"test_user": {"password": "password123", "info": {"email": "test@example.com"}}}
 user_records = {
@@ -70,8 +70,7 @@ def login():
             session['user_id'] = user_id
             return redirect(url_for('main.dashboard'))
         else:
-            error = "Invalid username or password"
-            return render_template('login.html', error=error)
+            flash("Invalid username or password", "error")
     return render_template('login.html')
 
 # Register route
@@ -85,8 +84,7 @@ def register():
         if success:
             return redirect(url_for('auth.login'))
         else:
-            error = "Registration failed"
-            return render_template('register.html', error=error)
+            flash("Registration failed", "error")
     return render_template('register.html')
 
 # Logout route
@@ -96,7 +94,6 @@ def logout():
     return redirect(url_for('auth.login'))
 
 # Helper functions
-
 def get_records_for_user(user_id):
     return user_records.get(user_id, [])
 
