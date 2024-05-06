@@ -3,12 +3,21 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 main = Blueprint('main', __name__, template_folder='template')
 auth = Blueprint('auth', __name__, template_folder='template')
 
+users = {"test_user": "password123"}
+user_records = {
+    "test_user": [
+        {"date": "2024-05-05", "temperature": 98.6, "blood_pressure": "120/80", "heart_rate": 72}
+    ]
+}
+
 # Dashboard route
 @main.route('/')
 def dashboard():
     if 'user_id' in session:
-        records = get_records_for_user(session['user_id'])
-        return render_template('dashboard.html', username="User", records=records)
+        user_id = session['user_id']
+        username = get_username(user_id)
+        records = get_records_for_user(user_id)
+        return render_template('dashboard.html', username=username, records=records)
     else:
         return redirect(url_for('auth.login'))
 
@@ -24,7 +33,14 @@ def submit_record_form():
 @main.route('/submit-record', methods=['POST'])
 def submit_record():
     if 'user_id' in session:
-        save_record(session['user_id'], request.form)
+        user_id = session['user_id']
+        record_data = {
+            "date": request.form["date"],
+            "temperature": float(request.form["temperature"]),
+            "blood_pressure": request.form["blood_pressure"],
+            "heart_rate": int(request.form["heart_rate"])
+        }
+        save_record(user_id, record_data)
         return redirect(url_for('main.dashboard'))
     else:
         return redirect(url_for('auth.login'))
@@ -40,7 +56,8 @@ def login():
             session['user_id'] = user_id
             return redirect(url_for('main.dashboard'))
         else:
-            return redirect(url_for('auth.login'))
+            error = "Invalid username or password"
+            return render_template('login.html', error=error)
     return render_template('login.html')
 
 # Register route
@@ -49,8 +66,12 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        create_user(username, password)
-        return redirect(url_for('auth.login'))
+        success = create_user(username, password)
+        if success:
+            return redirect(url_for('auth.login'))
+        else:
+            error = "Registration failed"
+            return render_template('register.html', error=error)
     return render_template('register.html')
 
 # Logout route
@@ -58,6 +79,33 @@ def register():
 def logout():
     session.pop('user_id', None)
     return redirect(url_for('main.dashboard'))
+
+# Helper functions
+
+def get_records_for_user(user_id):
+    return user_records.get(user_id, [])
+
+def get_username(user_id):
+    return user_id
+
+def save_record(user_id, record_data):
+    if user_id in user_records:
+        user_records[user_id].append(record_data)
+    else:
+        user_records[user_id] = [record_data]
+
+def authenticate_user(username, password):
+    if username in users and users[username] == password:
+        return username
+    return None
+
+def create_user(username, password):
+    if username not in users:
+        users[username] = password
+        user_records[username] = []
+        return True
+    return False
+
 
 
 
