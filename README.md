@@ -41,6 +41,10 @@
 - The frontend testing is using Jest
   ##### Run the test
           - npm start
+
+### Webpage
+<img width="927" alt="Screen Shot 2024-05-05 at 10 10 04 PM" src="https://github.com/rwrw123/Final-Project/assets/113308286/3f3a6300-9853-48b9-b7af-e0886f7e0c6f">
+
 #### Backend
 - The backend testing is using unittest and Flask-Testing
   ##### Run the test
