@@ -26,7 +26,7 @@
 ##### On MacOS/Unix
          - source venv/bin/activate
 5. Install dependencies
-     - pip install -r requirements.txt
+       - pip install -r requirements.txt
 6. Set up the database
-     - python setup_db.py
+       - python setup_db.py
    
