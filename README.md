@@ -29,4 +29,21 @@
        - pip install -r requirements.txt
 #### 6. Set up the database
        - python setup_db.py
+
+### Usage
+#### 1. Start the Flask Server
+        - python run.py
+#### 2. Access the Application
+        - Open browser and go http://127.0.0.1:5000
+
+### Testing
+#### Frontend 
+- The frontend testing is using Jest
+  ##### Run the test
+          - npm start
+#### Backend
+- The backend testing is using unittest and Flask-Testing
+  ##### Run the test
+          - python -m unittest discover tests/py
+
    
