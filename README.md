@@ -15,12 +15,12 @@
 - SQLite
   
 ### Setup
-- Clone repository
+#### 1. Clone repository
    - git clone https://github.com/rwrw123/Final-Project
-2. Navigate to the project directory
-3. Create a virtual environment
+#### 2. Navigate to the project directory
+#### 3. Create a virtual environment
    - python -m venv venv
-4. Activate virtual environment
+#### 4. Activate virtual environment
    - On Windows
        - venv\Scripts\activate
    - On MacOS/Unix
