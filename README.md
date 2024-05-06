@@ -13,3 +13,7 @@
 - Python 3.9+
 - Flask
 - SQLite
+
+### Setup
+1. Clone repository
+   git clone https://github.com/your-username/health-monitoring-system.git
