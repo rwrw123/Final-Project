@@ -47,7 +47,8 @@
           - python -m unittest discover tests/py
 ### Webpage
 <img width="927" alt="Screen Shot 2024-05-05 at 10 10 04 PM" src="https://github.com/rwrw123/Final-Project/assets/113308286/3f3a6300-9853-48b9-b7af-e0886f7e0c6f">
-<img width="887" alt="Screen Shot 2024-05-05 at 10 25 55 PM" src="https://github.com/rwrw123/Final-Project/assets/113308286/0747220d-7548-4850-9c09-2e1e6c34759d">
+<img width="853" alt="Screen Shot 2024-05-05 at 10 38 30 PM" src="https://github.com/rwrw123/Final-Project/assets/113308286/1ea3ba61-2a9d-4e94-a801-cbb346745c34">
+
 
 
 
