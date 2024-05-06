@@ -1,9 +1,9 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 
-main = Blueprint('main', __name__, template_folder='template')
-auth = Blueprint('auth', __name__, template_folder='template')
+main = Blueprint('main', __name__, template_folder='template', static_folder='static')
+auth = Blueprint('auth', __name__, template_folder='template', static_folder='static')
 
-users = {"test_user": "password123"}
+users = {"test_user": {"password": "password123", "info": {"email": "test@example.com"}}}
 user_records = {
     "test_user": [
         {"date": "2024-05-05", "temperature": 98.6, "blood_pressure": "120/80", "heart_rate": 72}
@@ -15,9 +15,23 @@ user_records = {
 def dashboard():
     if 'user_id' in session:
         user_id = session['user_id']
-        username = get_username(user_id)
+        username = user_id
         records = get_records_for_user(user_id)
         return render_template('dashboard.html', username=username, records=records)
+    else:
+        return redirect(url_for('auth.login'))
+
+# Profile route
+@main.route('/profile', methods=['GET', 'POST'])
+def profile():
+    if 'user_id' in session:
+        user_id = session['user_id']
+        user_info = get_user_info(user_id)
+        if request.method == 'POST':
+            user_info['email'] = request.form['email']
+            update_user_info(user_id, user_info)
+            flash("Profile updated successfully!", "success")
+        return render_template('profile.html', user_info=user_info)
     else:
         return redirect(url_for('auth.login'))
 
@@ -66,7 +80,8 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        success = create_user(username, password)
+        email = request.form['email']
+        success = create_user(username, password, email)
         if success:
             return redirect(url_for('auth.login'))
         else:
@@ -78,7 +93,7 @@ def register():
 @auth.route('/logout')
 def logout():
     session.pop('user_id', None)
-    return redirect(url_for('main.dashboard'))
+    return redirect(url_for('auth.login'))
 
 # Helper functions
 
@@ -95,16 +110,22 @@ def save_record(user_id, record_data):
         user_records[user_id] = [record_data]
 
 def authenticate_user(username, password):
-    if username in users and users[username] == password:
+    if username in users and users[username]["password"] == password:
         return username
     return None
 
-def create_user(username, password):
+def create_user(username, password, email):
     if username not in users:
-        users[username] = password
+        users[username] = {"password": password, "info": {"email": email}}
         user_records[username] = []
         return True
     return False
+
+def get_user_info(user_id):
+    return users[user_id]["info"]
+
+def update_user_info(user_id, info):
+    users[user_id]["info"] = info
 
 
 
