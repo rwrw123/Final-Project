@@ -1,43 +1,63 @@
-from flask import render_template, redirect, url_for, session, request, flash, Blueprint
-from .models import db, User, HealthRecord
-from flask_login import login_required, current_user
+from flask import Blueprint, render_template, request, redirect, url_for, session
 
-main = Blueprint('main', __name__)
+main = Blueprint('main', __name__, template_folder='template')
+auth = Blueprint('auth', __name__, template_folder='template')
 
+# Dashboard route
 @main.route('/')
-def home():
-    return redirect(url_for('main.dashboard'))
-
-@main.route('/dashboard')
-@login_required
 def dashboard():
-    user_id = session.get('user_id')
-    if not user_id:
+    if 'user_id' in session:
+        records = get_records_for_user(session['user_id'])
+        return render_template('dashboard.html', username="User", records=records)
+    else:
         return redirect(url_for('auth.login'))
-    user = User.query.get(user_id)
-    records = HealthRecord.query.filter_by(user_id=user_id).all()
-    return render_template('dashboard.html', username=user.username, records=records)
 
-@main.route('/submit_record', methods=['GET', 'POST'])
-@login_required
+# Submit health record form route
+@main.route('/submit-record-form')
+def submit_record_form():
+    if 'user_id' in session:
+        return render_template('submit_record.html')
+    else:
+        return redirect(url_for('auth.login'))
+
+# Submit health record route
+@main.route('/submit-record', methods=['POST'])
 def submit_record():
-    if request.method == 'POST':
-        date = request.form.get('date')
-        temperature = float(request.form.get('temperature'))
-        blood_pressure = request.form.get('blood_pressure')
-        heart_rate = int(request.form.get('heart_rate'))
-        new_record = HealthRecord(
-            user_id=current_user.id,
-            date=date,
-            temperature=temperature,
-            blood_pressure=blood_pressure,
-            heart_rate=heart_rate
-        )
-        db.session.add(new_record)
-        db.session.commit()
-        flash('Record submitted successfully!')
+    if 'user_id' in session:
+        save_record(session['user_id'], request.form)
         return redirect(url_for('main.dashboard'))
-    return render_template('submit_record.html')
+    else:
+        return redirect(url_for('auth.login'))
+
+# Login route
+@auth.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user_id = authenticate_user(username, password)
+        if user_id:
+            session['user_id'] = user_id
+            return redirect(url_for('main.dashboard'))
+        else:
+            return redirect(url_for('auth.login'))
+    return render_template('login.html')
+
+# Register route
+@auth.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        create_user(username, password)
+        return redirect(url_for('auth.login'))
+    return render_template('register.html')
+
+# Logout route
+@auth.route('/logout')
+def logout():
+    session.pop('user_id', None)
+    return redirect(url_for('main.dashboard'))
 
 
 
