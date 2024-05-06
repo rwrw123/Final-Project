@@ -4,7 +4,7 @@ from flask_testing import TestCase
 from app import create_app, db
 from app.models import User, HealthMetric, HealthRecord, HealthRecordValue
 
-class TestUserModel(TestCase):  # Ensure the class name starts with 'Test'
+class TestUserModel(TestCase): 
     def create_app(self):
         app = create_app({'TESTING': True, 'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:'})
         return app
@@ -31,7 +31,7 @@ class TestUserModel(TestCase):  # Ensure the class name starts with 'Test'
         user.set_password('password')
         self.assertTrue(user.check_password('password'))
 
-class TestHealthMetricModel(TestCase):  # Ensure the class name starts with 'Test'
+class TestHealthMetricModel(TestCase):  
     def create_app(self):
         app = create_app({'TESTING': True, 'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:'})
         return app
@@ -50,7 +50,7 @@ class TestHealthMetricModel(TestCase):  # Ensure the class name starts with 'Tes
         result = HealthMetric.query.filter_by(name='Weight').first()
         self.assertIsNotNone(result)
 
-class TestHealthRecordValueModel(TestCase):  # Ensure the class name starts with 'Test'
+class TestHealthRecordValueModel(TestCase):  
     def create_app(self):
         app = create_app({'TESTING': True, 'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:'})
         return app

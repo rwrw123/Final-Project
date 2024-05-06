@@ -2,7 +2,7 @@ import unittest
 from flask_testing import TestCase
 from app import create_app, db
 
-class TestIntegration(TestCase):  # Ensure the class name starts with 'Test'
+class TestIntegration(TestCase):  
     def create_app(self):
         app = create_app({'TESTING': True, 'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:'})
         return app
